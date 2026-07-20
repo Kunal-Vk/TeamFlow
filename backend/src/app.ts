@@ -3,6 +3,9 @@ import helmet from "helmet";
 import cors from "cors";
 import morgan from "morgan";
 import {env} from "./config/env";
+import authRoutes from "./modules/auth/routes/auth.routes";
+
+
 const app= express();
 
 //Security header
@@ -26,5 +29,7 @@ app.get("/",(_req,res)=>{
         message:"Welcom",
     });
 });
+
+app.use("/api/auth", authRoutes);
 
 export default app;

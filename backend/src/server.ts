@@ -1,13 +1,10 @@
 import app from "./app";
-import {env} from "./config/env";
-import { connectDB } from "./database/db";
+import { env } from "./config/env";
 
-async function startServer(){
-    await connectDB();
+const startServer = () => {
+  app.listen(env.PORT, () => {
+    console.log(`🚀 Server running on port ${env.PORT}`);
+  });
+};
 
-
-app.listen(env.PORT,()=>{
-    console.log(`Teamflow runnong on http://localhost:${env.PORT}`);
-});
-}
 startServer();
