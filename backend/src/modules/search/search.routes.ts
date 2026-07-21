@@ -2,10 +2,10 @@ import { Router } from "express";
 import { verifyToken } from "../../common/middleware/auth.middleware";
 import { searchOrg } from "./controllers/search.controller";
 
-const router = Router();
+const router = Router({ mergeParams: true });
 
 router.use(verifyToken);
 
-router.get("/organizations/:orgSlug/search", searchOrg);
+router.get("/", searchOrg);
 
 export default router;

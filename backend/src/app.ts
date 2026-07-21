@@ -15,23 +15,18 @@ import searchRoutes from "./modules/search/search.routes";
 
 const app = express();
 
-// Security headers
+// Security & Parsing Middleware
 app.use(helmet());
-
-// Cross origin requests
 app.use(
   cors({
     origin: env.CORS_ORIGIN,
+    credentials: true,
   })
 );
-
-// Body parser
 app.use(express.json());
-
-// Logger
 app.use(morgan("dev"));
 
-// Health check
+// Public Health Checks
 app.get("/", (_req, res) => {
   res.status(200).json({
     success: true,
@@ -39,15 +34,24 @@ app.get("/", (_req, res) => {
   });
 });
 
-// API Routes
+app.get("/api/health", (_req, res) => {
+  res.status(200).json({
+    status: "ok",
+    message: "TeamFlow API is running",
+  });
+});
+
+// Domain API Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/organizations", organizationRoutes);
 app.use("/api/users", userRoutes);
-app.use("/api", projectRoutes);
-app.use("/api", teamRoutes);
-app.use("/api", taskRoutes);
-app.use("/api", commentRoutes);
-app.use("/api", dashboardRoutes);
-app.use("/api", searchRoutes);
+
+// Entity-Specific Prefixed Sub-Routers
+app.use("/api/organizations/:orgSlug/projects", projectRoutes);
+app.use("/api/organizations/:orgSlug/teams", teamRoutes);
+app.use("/api/organizations/:orgSlug/projects/:projectSlug/tasks", taskRoutes);
+app.use("/api/organizations/:orgSlug/projects/:projectSlug/tasks/:taskId/comments", commentRoutes);
+app.use("/api/organizations/:orgSlug/dashboard", dashboardRoutes);
+app.use("/api/organizations/:orgSlug/search", searchRoutes);
 
 export default app;

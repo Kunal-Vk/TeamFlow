@@ -8,14 +8,14 @@ import {
   deleteTask,
 } from "./controllers/tasks.controller";
 
-const router = Router();
+const router = Router({ mergeParams: true });
 
 router.use(verifyToken);
 
-router.post("/organizations/:orgSlug/projects/:projectSlug/tasks", createTask);
-router.get("/organizations/:orgSlug/projects/:projectSlug/tasks", getTasks);
-router.get("/organizations/:orgSlug/projects/:projectSlug/tasks/:taskId", getTaskById);
-router.put("/organizations/:orgSlug/projects/:projectSlug/tasks/:taskId", updateTask);
-router.delete("/organizations/:orgSlug/projects/:projectSlug/tasks/:taskId", deleteTask);
+router.post("/", createTask);
+router.get("/", getTasks);
+router.get("/:taskId", getTaskById);
+router.put("/:taskId", updateTask);
+router.delete("/:taskId", deleteTask);
 
 export default router;

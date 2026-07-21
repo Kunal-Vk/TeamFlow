@@ -8,14 +8,14 @@ import {
   deleteTeam,
 } from "./controllers/teams.controller";
 
-const router = Router();
+const router = Router({ mergeParams: true });
 
 router.use(verifyToken);
 
-router.post("/organizations/:orgSlug/teams", createTeam);
-router.get("/organizations/:orgSlug/teams", getTeams);
-router.get("/organizations/:orgSlug/teams/:teamId", getTeamById);
-router.put("/organizations/:orgSlug/teams/:teamId", updateTeam);
-router.delete("/organizations/:orgSlug/teams/:teamId", deleteTeam);
+router.post("/", createTeam);
+router.get("/", getTeams);
+router.get("/:teamId", getTeamById);
+router.put("/:teamId", updateTeam);
+router.delete("/:teamId", deleteTeam);
 
 export default router;

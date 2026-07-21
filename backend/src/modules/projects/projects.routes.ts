@@ -8,14 +8,14 @@ import {
   deleteProject,
 } from "./controllers/projects.controller";
 
-const router = Router();
+const router = Router({ mergeParams: true });
 
 router.use(verifyToken);
 
-router.post("/organizations/:orgSlug/projects", createProject);
-router.get("/organizations/:orgSlug/projects", getProjects);
-router.get("/organizations/:orgSlug/projects/:projectSlug", getProjectBySlug);
-router.put("/organizations/:orgSlug/projects/:projectSlug", updateProject);
-router.delete("/organizations/:orgSlug/projects/:projectSlug", deleteProject);
+router.post("/", createProject);
+router.get("/", getProjects);
+router.get("/:projectSlug", getProjectBySlug);
+router.put("/:projectSlug", updateProject);
+router.delete("/:projectSlug", deleteProject);
 
 export default router;
