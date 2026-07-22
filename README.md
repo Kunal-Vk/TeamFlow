@@ -1,5 +1,6 @@
-# 🚀 TeamFlow — Enterprise-Grade SaaS Project Management Platform
+# 🚀 TeamFlow (v1.0) — Enterprise-Grade SaaS Project Management Platform
 
+![Version](https://img.shields.io/badge/Version-v1.0.0-0070f3?style=for-the-badge)
 ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
 ![Next.js 15](https://img.shields.io/badge/Next.js%2015-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)
 ![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
@@ -13,7 +14,7 @@
 
 ## 📌 Executive Overview
 
-**TeamFlow** is a full-stack, production-style SaaS project management platform built to showcase enterprise software architecture. It features multi-tenant organization scoping, Command Query Responsibility Segregation (CQRS), Repository Pattern, stateful refresh token rotation via `HttpOnly` cookies, multi-assignee task workflows, and automated workspace audit trails.
+**TeamFlow v1.0** is a full-stack, production-style SaaS project management platform built to showcase enterprise software architecture. It features multi-tenant organization scoping, Command Query Responsibility Segregation (CQRS), Repository Pattern, stateful refresh token rotation via `HttpOnly` cookies, multi-assignee task workflows, and automated workspace audit trails.
 
 ---
 
@@ -118,6 +119,30 @@ NEXT_PUBLIC_API_URL=http://localhost:8000/api
 npm run dev
 ```
 Frontend runs at `http://localhost:3000`.
+
+---
+
+## 🔮 Future Improvements & Roadmap
+
+Here are planned features and technical enhancements building upon **TeamFlow v1.0**:
+
+### ⚡ Real-Time Collaboration
+* **WebSockets Integration**: Implement Socket.io / WebSockets for real-time task updates, active member presence indicators, and instant live comment feeds without manual page reloads.
+* **Kanban & Gantt Interactive Views**: Drag-and-drop Kanban board interface (using `dnd-kit`) alongside project timeline Gantt charts.
+
+### 🔔 Notifications & Alerting
+* **Multi-Channel Notification Engine**: In-app notification center and automated email notifications (via Resend / Nodemailer) for task assignments, `@mentions`, and upcoming due dates.
+
+### 📎 Media & File Attachments
+* **Cloud Asset Management**: Cloud storage integration (AWS S3 / Cloudflare R2) allowing users to attach design assets, screenshots, and documents to task discussion threads.
+
+### 🤖 AI Productivity Layer
+* **AI Task Copilot**: AI-assisted task generation, automated subtask breakdown for complex epics, and auto-summarization of long task discussion threads.
+
+### 🔑 Infrastructure & Enterprise Security
+* **OAuth 2.0 & Enterprise SSO**: Google and GitHub social logins, alongside SAML/SSO support for enterprise organizations.
+* **Redis Caching & Async Workers**: Redis caching layer for hot workspace metadata and BullMQ background queues for asynchronous audit logging and batch notification emails.
+* **Comprehensive Testing Suite**: End-to-end Playwright tests and API integration test suites wired into GitHub Actions CI/CD pipelines.
 
 ---
 
