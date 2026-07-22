@@ -1,6 +1,6 @@
 import { eq, and } from "drizzle-orm";
 import { db } from "../../database/db";
-import { projects } from "../../database/schema";
+import { projects, projectMembers, users } from "../../database/schema";
 import { NewProject } from "./projects.types";
 import { UpdateProjectDto } from "./projects.schema";
 
@@ -48,6 +48,39 @@ export class ProjectRepository {
     const [deleted] = await db
       .delete(projects)
       .where(and(eq(projects.id, id), eq(projects.organizationId, organizationId)))
+      .returning();
+    return deleted ?? null;
+  }
+
+  // ─── Project Members ───────────────────────────────────────────────────────
+
+  async addMember(projectId: string, userId: string) {
+    const [record] = await db
+      .insert(projectMembers)
+      .values({ projectId, userId })
+      .onConflictDoNothing()
+      .returning();
+    return record;
+  }
+
+  async getMembers(projectId: string) {
+    return db
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        role: users.role,
+        addedAt: projectMembers.createdAt,
+      })
+      .from(projectMembers)
+      .innerJoin(users, eq(projectMembers.userId, users.id))
+      .where(eq(projectMembers.projectId, projectId));
+  }
+
+  async removeMember(projectId: string, userId: string) {
+    const [deleted] = await db
+      .delete(projectMembers)
+      .where(and(eq(projectMembers.projectId, projectId), eq(projectMembers.userId, userId)))
       .returning();
     return deleted ?? null;
   }

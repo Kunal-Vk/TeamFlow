@@ -53,6 +53,14 @@ export const projects = pgTable(
   })
 );
 
+// ─── Project Members ─────────────────────────────────────────────────────────
+export const projectMembers = pgTable("project_members", {
+  id:        uuid("id").defaultRandom().primaryKey(),
+  projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  userId:    uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // ─── Teams ────────────────────────────────────────────────────────────────────
 export const teams = pgTable("teams", {
   id:             uuid("id").defaultRandom().primaryKey(),
@@ -61,6 +69,14 @@ export const teams = pgTable("teams", {
   description:    text("description"),
   createdAt:      timestamp("created_at").defaultNow().notNull(),
   updatedAt:      timestamp("updated_at").defaultNow().notNull(),
+});
+
+// ─── Team Members ─────────────────────────────────────────────────────────────
+export const teamMembers = pgTable("team_members", {
+  id:        uuid("id").defaultRandom().primaryKey(),
+  teamId:    uuid("team_id").notNull().references(() => teams.id, { onDelete: "cascade" }),
+  userId:    uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 // ─── Tasks ────────────────────────────────────────────────────────────────────
@@ -77,6 +93,14 @@ export const tasks = pgTable("tasks", {
   dueDate:     date("due_date"),
   createdAt:   timestamp("created_at").defaultNow().notNull(),
   updatedAt:   timestamp("updated_at").defaultNow().notNull(),
+});
+
+// ─── Task Assignees (Multiple Assignees Support) ──────────────────────────────
+export const taskAssignees = pgTable("task_assignees", {
+  id:        uuid("id").defaultRandom().primaryKey(),
+  taskId:    uuid("task_id").notNull().references(() => tasks.id, { onDelete: "cascade" }),
+  userId:    uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 // ─── Comments ─────────────────────────────────────────────────────────────────

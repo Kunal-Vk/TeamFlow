@@ -3,8 +3,8 @@ import { OrganizationRepository } from "../repository/organizations.repository";
 export class GetOrganizationsCommand {
   private repository = new OrganizationRepository();
 
-  async execute(ownerId: string) {
-    const orgs = await this.repository.findAllByOwner(ownerId);
+  async execute(userId: string) {
+    const orgs = await this.repository.findAllForUser(userId);
 
     return {
       success: true,

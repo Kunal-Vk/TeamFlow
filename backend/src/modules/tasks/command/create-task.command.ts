@@ -2,7 +2,7 @@ import { TaskRepository } from "../tasks.repository";
 import { ProjectRepository } from "../../projects/projects.repository";
 import { OrganizationRepository } from "../../organizations/repository/organizations.repository";
 import { CreateTaskDto } from "../tasks.schema";
-import { hasOrgAccess } from "../../../common/utils/org-access";
+import { isOrgOwner } from "../../../common/utils/org-access";
 
 export class CreateTaskCommand {
   private taskRepository = new TaskRepository();
@@ -20,8 +20,9 @@ export class CreateTaskCommand {
       return { success: false, message: "Organization not found", statusCode: 404 };
     }
 
-    if (!hasOrgAccess(requestingUser, org)) {
-      return { success: false, message: "Forbidden: Access denied", statusCode: 403 };
+    // Only organization owners can create tasks
+    if (!isOrgOwner(requestingUser, org)) {
+      return { success: false, message: "Forbidden: Only organization owners can create tasks", statusCode: 403 };
     }
 
     const project = await this.projectRepository.findBySlugAndOrgId(projectSlug, org.id);
@@ -29,10 +30,21 @@ export class CreateTaskCommand {
       return { success: false, message: "Project not found", statusCode: 404 };
     }
 
-    const task = await this.taskRepository.create({
-      ...data,
-      projectId: project.id,
-    });
+    const assigneeIds = data.assigneeIds && data.assigneeIds.length > 0
+      ? data.assigneeIds
+      : data.assignedTo
+      ? [data.assignedTo]
+      : [];
+
+    const { assigneeIds: _, ...taskData } = data;
+
+    const task = await this.taskRepository.create(
+      {
+        ...taskData,
+        projectId: project.id,
+      },
+      assigneeIds
+    );
 
     return {
       success: true,

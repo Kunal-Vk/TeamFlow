@@ -5,8 +5,8 @@ export class UpdateOrganizationCommand {
   private repository = new OrganizationRepository();
 
   async execute(currentSlug: string, ownerId: string, data: UpdateOrganizationDto) {
-    // Step 1: Resolve slug → row (also enforces ownership)
-    const existing = await this.repository.findBySlugAndOwner(currentSlug, ownerId);
+    // Step 1: Resolve organization by slug
+    const existing = await this.repository.findBySlug(currentSlug);
 
     if (!existing) {
       return {
@@ -15,9 +15,15 @@ export class UpdateOrganizationCommand {
       };
     }
 
-    // Step 2: If the user explicitly provides a new slug, ensure it is not taken
-    //         by a DIFFERENT organization. Slug is only ever changed when the
-    //         client sends it — name changes do NOT auto-regenerate the slug.
+    // Enforce ownership
+    if (existing.ownerId !== ownerId) {
+      return {
+        success: false,
+        message: "Forbidden: Only the organization owner can update workspace details",
+      };
+    }
+
+    // Step 2: If the user provides a new slug, ensure it is not taken
     if (data.slug !== undefined && data.slug !== existing.slug) {
       const conflict = await this.repository.findBySlug(data.slug);
 
@@ -29,13 +35,13 @@ export class UpdateOrganizationCommand {
       }
     }
 
-    // Step 3: Perform the update using the internal UUID (never exposed publicly)
+    // Step 3: Perform the update
     const updated = await this.repository.update(existing.id, ownerId, data);
 
     if (!updated) {
       return {
         success: false,
-        message: "Organization not found",
+        message: "Failed to update organization",
       };
     }
 

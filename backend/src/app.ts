@@ -13,6 +13,8 @@ import commentRoutes from "./modules/comments/comments.routes";
 import dashboardRoutes from "./modules/dashboard/dashboard.routes";
 import searchRoutes from "./modules/search/search.routes";
 
+import cookieParser from "cookie-parser";
+
 const app = express();
 
 // Security & Parsing Middleware
@@ -24,6 +26,7 @@ app.use(
   })
 );
 app.use(express.json());
+app.use(cookieParser());
 app.use(morgan("dev"));
 
 // Public Health Checks

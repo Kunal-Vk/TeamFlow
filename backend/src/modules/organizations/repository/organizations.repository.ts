@@ -1,6 +1,6 @@
 import { eq, and, ilike, or } from "drizzle-orm";
 import { db } from "../../../database/db";
-import { organizations } from "../../../database/schema";
+import { organizations, users } from "../../../database/schema";
 import { NewOrganization } from "../types/organizations.types";
 import { UpdateOrganizationDto } from "../schemas/organizations.schema";
 
@@ -21,6 +21,28 @@ export class OrganizationRepository {
     return db.query.organizations.findMany({
       where: eq(organizations.ownerId, ownerId),
     });
+  }
+
+  /** Finds all organizations owned by OR joined by the specified user. */
+  async findAllForUser(userId: string) {
+    const [userRecord] = await db
+      .select({ organizationId: users.organizationId })
+      .from(users)
+      .where(eq(users.id, userId));
+
+    const userOrgId = userRecord?.organizationId;
+
+    if (userOrgId) {
+      return db
+        .select()
+        .from(organizations)
+        .where(or(eq(organizations.ownerId, userId), eq(organizations.id, userOrgId)));
+    }
+
+    return db
+      .select()
+      .from(organizations)
+      .where(eq(organizations.ownerId, userId));
   }
 
   /** Used internally (e.g. to resolve UUID from slug before update/delete). */
@@ -50,11 +72,6 @@ export class OrganizationRepository {
 
   // ─── Update ───────────────────────────────────────────────────────────────
 
-  /**
-   * Update by primary-key UUID + ownerId guard.
-   * Called internally after resolving a slug to a UUID.
-   * Accepts the full UpdateOrganizationDto which may contain a new slug.
-   */
   async update(id: string, ownerId: string, data: UpdateOrganizationDto) {
     const [updated] = await db
       .update(organizations)
@@ -66,10 +83,6 @@ export class OrganizationRepository {
 
   // ─── Delete ───────────────────────────────────────────────────────────────
 
-  /**
-   * Delete by primary-key UUID + ownerId guard.
-   * Called internally after resolving a slug to a UUID.
-   */
   async delete(id: string, ownerId: string) {
     const [deleted] = await db
       .delete(organizations)
@@ -80,10 +93,6 @@ export class OrganizationRepository {
 
   // ─── Search ───────────────────────────────────────────────────────────────
 
-  /**
-   * Case-insensitive partial match on name OR slug, scoped to the owner.
-   * Pure DB read — no business logic.
-   */
   async search(query: string, ownerId: string) {
     return db
       .select()
@@ -99,4 +108,3 @@ export class OrganizationRepository {
       );
   }
 }
-

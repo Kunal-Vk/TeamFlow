@@ -5,12 +5,18 @@ import {
   addUserToOrg,
   removeUserFromOrg,
   getOrgMembers,
+  joinOrganization,
+  leaveOrg,
 } from "../controllers/users.controller";
 
 const router = Router();
 
 // All user management routes require valid authentication
 router.use(verifyToken);
+
+// User self-service join & leave org
+router.post("/join", joinOrganization);                                   // POST /api/users/join
+router.post("/leave", leaveOrg);                                           // POST /api/users/leave
 
 // User search (Owner searching user by email)
 router.get("/search", searchUserByEmail);                                // GET /api/users/search?email=...
