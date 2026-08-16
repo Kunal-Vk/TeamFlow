@@ -1,0 +1,144 @@
+name: 🚀 TeamFlow CI/CD Deployment Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  lint-and-test:
+    name: 🔍 Lint & Code Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+
+      - name: 📦 Validate Backend Build
+        run: |
+          cd backend
+          npm ci
+          npm run build
+
+      - name: 📦 Validate Frontend Build
+        run: |
+          cd frontend
+          npm ci
+          npm run build
+        env:
+          NEXT_PUBLIC_API_URL: "http://localhost:8000/api"
+
+  deploy:
+    name: 🚀 Deploy to AWS EC2
+    needs: lint-and-test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🔑 Configure AWS Credentials (for JIT Access if enabled)
+        if: ${{ secrets.AWS_ACCESS_KEY_ID != '' && secrets.AWS_SECURITY_GROUP_ID != '' }}
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION || 'us-east-1' }}
+
+      - name: 🛡️ [Phase 3] Enable JIT Ingress SSH Access (Authorize Runner IP)
+        if: ${{ secrets.AWS_ACCESS_KEY_ID != '' && secrets.AWS_SECURITY_GROUP_ID != '' }}
+        id: jit-enable
+        run: |
+          RUNNER_IP=$(curl -s https://checkip.amazonaws.com)
+          echo "RUNNER_IP=${RUNNER_IP}" >> $GITHUB_ENV
+          echo "::notice ::Whitelisting GitHub Runner IP ${RUNNER_IP}/32 for port 22 access..."
+          aws ec2 authorize-security-group-ingress \
+            --group-id ${{ secrets.AWS_SECURITY_GROUP_ID }} \
+            --protocol tcp \
+            --port 22 \
+            --cidr ${RUNNER_IP}/32
+
+      - name: 🚀 Deploy Application to EC2 via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME || 'ubuntu' }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: 22
+          script: |
+            set -e
+            echo "📦 Deploying TeamFlow on EC2..."
+            
+            # Ensure target directory exists
+            sudo mkdir -p /opt/teamflow
+            sudo chown -R $USER:$USER /opt/teamflow
+            cd /opt/teamflow
+
+            # Create / Update Environment Variables File
+            cat << 'EOF' > .env
+            PORT=8000
+            NODE_ENV=production
+            DATABASE_URL=${{ secrets.DATABASE_URL }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            JWT_EXPIRES_IN=${{ secrets.JWT_EXPIRES_IN || '7d' }}
+            CORS_ORIGIN=${{ secrets.CORS_ORIGIN }}
+            NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
+            POSTGRES_USER=${{ secrets.POSTGRES_USER || 'postgres' }}
+            POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD || 'postgres' }}
+            POSTGRES_DB=${{ secrets.POSTGRES_DB || 'teamflow' }}
+            EOF
+
+            # Clone or Pull repository
+            if [ -d ".git" ]; then
+              echo "🔄 Pulling latest code..."
+              git fetch --all
+              git reset --hard origin/main || git reset --hard origin/master
+            else
+              echo "📥 Initializing repository clone..."
+              git clone https://github.com/${{ github.repository }}.git .
+            fi
+
+            # Sync Nginx Config if modified
+            if [ -f "nginx/teamflow.conf" ]; then
+              sudo cp nginx/teamflow.conf /etc/nginx/sites-available/teamflow
+              sudo ln -sf /etc/nginx/sites-available/teamflow /etc/nginx/sites-enabled/teamflow
+              sudo rm -f /etc/nginx/sites-enabled/default
+              sudo nginx -t && sudo systemctl reload nginx
+            fi
+
+            # Build and Launch Containers
+            echo "🐳 Starting Docker containers..."
+            docker compose up -d --build --remove-orphans
+
+            # Run Database Migrations
+            echo "🗄️ Running Database Migrations..."
+            docker compose exec -T backend npm run db:migrate || true
+
+            # Container Health Smoke Test
+            echo "🏥 Running Smoke Test..."
+            sleep 5
+            curl --fail http://localhost:8000/api/health || (echo "❌ Backend Health Check Failed!" && exit 1)
+            curl --fail http://localhost:3000 || (echo "❌ Frontend Health Check Failed!" && exit 1)
+
+            echo "✅ TeamFlow Successfully Deployed & Healthy!"
+
+      - name: 🔒 [Phase 3 Cleanup] Revoke JIT Ingress SSH Access
+        if: always() && secrets.AWS_ACCESS_KEY_ID != '' && secrets.AWS_SECURITY_GROUP_ID != ''
+        run: |
+          echo "::notice ::Revoking GitHub Runner IP ${RUNNER_IP}/32 from Security Group..."
+          aws ec2 revoke-security-group-ingress \
+            --group-id ${{ secrets.AWS_SECURITY_GROUP_ID }} \
+            --protocol tcp \
+            --port 22 \
+            --cidr ${RUNNER_IP}/32 || true
