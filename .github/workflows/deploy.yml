@@ -123,6 +123,7 @@ jobs:
 
             # Run Database Migrations
             echo "🗄️ Running Database Migrations..."
+            docker compose exec -T backend npm run db:generate || true
             docker compose exec -T backend npm run db:migrate || true
 
             # Container Health Smoke Test
