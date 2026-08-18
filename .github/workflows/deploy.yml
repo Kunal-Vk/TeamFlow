@@ -88,6 +88,19 @@ jobs:
             sudo chown -R $USER:$USER /opt/teamflow
             cd /opt/teamflow
 
+            # Clone or Pull repository
+            if [ -d ".git" ]; then
+              echo "🔄 Pulling latest code..."
+              git fetch --all
+              git reset --hard origin/main || git reset --hard origin/master
+            else
+              echo "📥 Initializing repository..."
+              git init
+              git remote add origin https://github.com/${{ github.repository }}.git || git remote set-url origin https://github.com/${{ github.repository }}.git
+              git fetch --all
+              git checkout -f main || git checkout -f master
+            fi
+
             # Create / Update Environment Variables File
             cat << 'EOF' > .env
             PORT=8000
@@ -102,15 +115,6 @@ jobs:
             POSTGRES_DB=${{ secrets.POSTGRES_DB || 'teamflow' }}
             EOF
 
-            # Clone or Pull repository
-            if [ -d ".git" ]; then
-              echo "🔄 Pulling latest code..."
-              git fetch --all
-              git reset --hard origin/main || git reset --hard origin/master
-            else
-              echo "📥 Initializing repository clone..."
-              git clone https://github.com/${{ github.repository }}.git .
-            fi
 
             # Sync Nginx Config if modified
             if [ -f "nginx/teamflow.conf" ]; then
