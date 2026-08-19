@@ -66,6 +66,7 @@ export default function TeamsPage() {
     queryKey: ["teams", orgSlug],
     queryFn: () => teamService.getTeams(orgSlug),
     enabled: !!orgSlug,
+    refetchInterval: 3000,
   });
 
   // Fetch Org Members List
@@ -73,6 +74,7 @@ export default function TeamsPage() {
     queryKey: ["members", orgSlug],
     queryFn: () => userService.getOrgMembers(orgSlug),
     enabled: !!orgSlug,
+    refetchInterval: 3000,
   });
 
   const teams = teamsData?.data || [];
@@ -83,6 +85,7 @@ export default function TeamsPage() {
     queryKey: ["teamMembers", orgSlug, managingTeamMembers?.id],
     queryFn: () => teamService.getTeamMembers(orgSlug, managingTeamMembers!.id),
     enabled: !!orgSlug && !!managingTeamMembers,
+    refetchInterval: 3000,
   });
 
   const currentTeamMembers = teamMembersData?.data || [];

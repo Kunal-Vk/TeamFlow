@@ -50,6 +50,7 @@ export default function ProjectsPage() {
     queryKey: ["projects", orgSlug],
     queryFn: () => projectService.getProjects(orgSlug),
     enabled: !!orgSlug,
+    refetchInterval: 3000,
   });
 
   const projects = data?.data || [];

@@ -38,6 +38,7 @@ export default function DashboardPage() {
     queryKey: ["dashboard", orgSlug],
     queryFn: () => dashboardService.getDashboard(orgSlug),
     enabled: !!orgSlug,
+    refetchInterval: 3000,
   });
 
   // Fetch Recent Projects
@@ -48,6 +49,7 @@ export default function DashboardPage() {
     queryKey: ["projects", orgSlug],
     queryFn: () => projectService.getProjects(orgSlug),
     enabled: !!orgSlug,
+    refetchInterval: 3000,
   });
 
   // Fetch Audit Logs for Workspace
@@ -58,6 +60,7 @@ export default function DashboardPage() {
     queryKey: ["auditLogs", orgSlug],
     queryFn: () => dashboardService.getAuditLogs(orgSlug),
     enabled: !!orgSlug,
+    refetchInterval: 3000,
   });
 
   const stats = dashboardData?.data;

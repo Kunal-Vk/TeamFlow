@@ -119,6 +119,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     refreshUserAndOrgs();
+
+    // Periodically sync user organization & profile updates in the background (every 10s)
+    const interval = setInterval(() => {
+      if (tokenStorage.getAccessToken()) {
+        refreshUserAndOrgs();
+      }
+    }, 10000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const login = async (accessToken: string, loggedUser: User) => {

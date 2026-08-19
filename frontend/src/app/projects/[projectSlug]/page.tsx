@@ -39,6 +39,7 @@ export default function SingleProjectPage({ params }: { params: Promise<{ projec
     queryKey: ["project", orgSlug, projectSlug],
     queryFn: () => projectService.getProjectBySlug(orgSlug, projectSlug),
     enabled: !!orgSlug && !!projectSlug,
+    refetchInterval: 5000,
   });
 
   // Fetch Project Tasks
@@ -49,6 +50,7 @@ export default function SingleProjectPage({ params }: { params: Promise<{ projec
     queryKey: ["tasks", orgSlug, projectSlug],
     queryFn: () => taskService.getTasks(orgSlug, projectSlug),
     enabled: !!orgSlug && !!projectSlug,
+    refetchInterval: 3000,
   });
 
   // Fetch Project Explicit Members
@@ -59,6 +61,7 @@ export default function SingleProjectPage({ params }: { params: Promise<{ projec
     queryKey: ["projectMembers", orgSlug, projectSlug],
     queryFn: () => projectService.getProjectMembers(orgSlug, projectSlug),
     enabled: !!orgSlug && !!projectSlug,
+    refetchInterval: 3000,
   });
 
   // Fetch All Org Members
@@ -66,6 +69,7 @@ export default function SingleProjectPage({ params }: { params: Promise<{ projec
     queryKey: ["members", orgSlug],
     queryFn: () => userService.getOrgMembers(orgSlug),
     enabled: !!orgSlug,
+    refetchInterval: 5000,
   });
 
   const project = projectData?.data;

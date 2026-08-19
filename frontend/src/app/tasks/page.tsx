@@ -79,6 +79,7 @@ export default function TasksPage() {
     queryKey: ["projects", orgSlug],
     queryFn: () => projectService.getProjects(orgSlug),
     enabled: !!orgSlug,
+    refetchInterval: 5000,
   });
 
   const projects = projectsData?.data || [];
@@ -95,6 +96,7 @@ export default function TasksPage() {
     queryKey: ["members", orgSlug],
     queryFn: () => userService.getOrgMembers(orgSlug),
     enabled: !!orgSlug,
+    refetchInterval: 5000,
   });
 
   const members = membersData?.data || [];
@@ -104,6 +106,7 @@ export default function TasksPage() {
     queryKey: ["tasks", orgSlug, selectedProjectSlug],
     queryFn: () => taskService.getTasks(orgSlug, selectedProjectSlug),
     enabled: !!orgSlug && !!selectedProjectSlug,
+    refetchInterval: 3000,
   });
 
   const tasks = tasksData?.data || [];
@@ -116,11 +119,12 @@ export default function TasksPage() {
     return matchesSearch && matchesStatus && matchesPriority;
   });
 
-  // Fetch Comments for Active Task
+  // Fetch Comments for Active Task (Live Discussion updates every 2s)
   const { data: commentsData, isLoading: isCommentsLoading } = useQuery({
     queryKey: ["comments", orgSlug, selectedProjectSlug, activeTaskForComments?.id],
     queryFn: () => commentService.getComments(orgSlug, selectedProjectSlug, activeTaskForComments!.id),
     enabled: !!orgSlug && !!selectedProjectSlug && !!activeTaskForComments,
+    refetchInterval: 2000,
   });
 
   const comments = commentsData?.data || [];
