@@ -114,9 +114,6 @@ jobs:
             JWT_EXPIRES_IN=${{ secrets.JWT_EXPIRES_IN || '7d' }}
             CORS_ORIGIN=${{ secrets.CORS_ORIGIN }}
             NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
-            POSTGRES_USER=${{ secrets.POSTGRES_USER || 'postgres' }}
-            POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD || 'postgres' }}
-            POSTGRES_DB=${{ secrets.POSTGRES_DB || 'teamflow' }}
             EOF
 
 
