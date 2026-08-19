@@ -34,15 +34,42 @@ if [ -n "$PG_HBA" ] && [ -f "$PG_HBA" ]; then
         echo "⚙️ Allowing Docker subnet in pg_hba.conf..."
         echo "host    all             all             172.16.0.0/12            md5" | sudo tee -a "$PG_HBA"
         echo "host    all             all             127.0.0.1/32             md5" | sudo tee -a "$PG_HBA"
+        echo "host    all             all             0.0.0.0/0               md5" | sudo tee -a "$PG_HBA"
     fi
 fi
 sudo systemctl restart postgresql
 
-# 6. Create deployment directory
+# 6. Automatically Initialize Database & User with Full Privileges
+echo "🗄️ Automatically initializing TeamFlow database and user permissions..."
+sudo -u postgres psql -c "
+DO \$\$
+BEGIN
+  IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'DADA') THEN
+    CREATE USER \"DADA\" WITH PASSWORD 'postgres';
+  END IF;
+  IF NOT EXISTS (SELECT FROM pg_database WHERE datname = 'teamflow') THEN
+    CREATE DATABASE teamflow OWNER \"DADA\";
+  END IF;
+END
+\$\$;
+GRANT ALL PRIVILEGES ON DATABASE teamflow TO \"DADA\";
+"
+
+sudo -u postgres psql -d teamflow -c "
+CREATE EXTENSION IF NOT EXISTS \"pgcrypto\";
+ALTER SCHEMA public OWNER TO \"DADA\";
+GRANT ALL ON SCHEMA public TO \"DADA\";
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO \"DADA\";
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO \"DADA\";
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO \"DADA\";
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO \"DADA\";
+"
+
+# 7. Create deployment directory
 sudo mkdir -p /opt/teamflow
 sudo chown -R $USER:$USER /opt/teamflow
 
-# 7. Copy Nginx Configuration if exists
+# 8. Copy Nginx Configuration if exists
 if [ -f /opt/teamflow/nginx/teamflow.conf ]; then
     sudo mkdir -p /etc/nginx/sites-available /etc/nginx/sites-enabled
     sudo cp /opt/teamflow/nginx/teamflow.conf /etc/nginx/sites-available/teamflow
@@ -52,4 +79,4 @@ if [ -f /opt/teamflow/nginx/teamflow.conf ]; then
     sudo systemctl restart nginx
 fi
 
-echo "✅ EC2 Server Setup Complete! PostgreSQL is running natively on EC2, and TeamFlow containers are ready."
+echo "✅ EC2 Server Setup Complete! PostgreSQL database, user, permissions, and TeamFlow environment are 100% ready."

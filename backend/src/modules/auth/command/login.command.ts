@@ -6,7 +6,7 @@ import { AuthRepository } from "../repository/auth.repository";
 import { LoginUserDto } from "../schemas/auth.schema";
 import { env } from "../../../config/env";
 
-const ACCESS_TOKEN_TTL  = "15m";
+const ACCESS_TOKEN_TTL  = "30m";
 const REFRESH_TOKEN_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days in ms
 
 export class LoginCommand {
