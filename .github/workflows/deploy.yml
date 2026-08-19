@@ -7,7 +7,11 @@ on:
       - master
   workflow_dispatch:
 
+env:
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: 'true'
+
 jobs:
+
   lint-and-test:
     name: 🔍 Lint & Code Validation
     runs-on: ubuntu-latest
@@ -19,7 +23,7 @@ jobs:
       - name: ⚙️ Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 25
           cache: 'npm'
           cache-dependency-path: |
             backend/package-lock.json
