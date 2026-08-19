@@ -11,8 +11,8 @@ import { eq } from "drizzle-orm";
 
 const COOKIE_OPTIONS = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: (process.env.NODE_ENV === "production" ? "none" : "lax") as "none" | "lax",
+  secure: process.env.ENABLE_HTTPS === "true", // Only secure if explicit HTTPS is enabled
+  sameSite: "lax" as const,
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in ms
 };
 
