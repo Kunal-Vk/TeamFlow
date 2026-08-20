@@ -130,10 +130,20 @@ jobs:
             EOF
 
 
+            # Safely wait for any background apt/dpkg lock to release (e.g. unattended-upgrades on fresh EC2)
+            wait_for_apt() {
+              while sudo fuser /var/lib/dpkg/lock-frontend /var/lib/apt/lists/lock /var/lib/dpkg/lock >/dev/null 2>&1; do
+                echo "⏳ Waiting for background Ubuntu automatic updates (unattended-upgrades) to release package lock..."
+                sleep 5
+              done
+            }
+
             # Ensure PostgreSQL is installed and configured natively on Ubuntu
             if ! command -v psql &> /dev/null; then
               echo "🗄️ Installing and configuring PostgreSQL on Ubuntu..."
+              wait_for_apt
               sudo apt-get update -y
+              wait_for_apt
               sudo apt-get install -y postgresql postgresql-contrib
               sudo systemctl enable postgresql && sudo systemctl start postgresql
 
@@ -181,7 +191,9 @@ jobs:
             # Ensure Docker & Docker Compose are installed on EC2
             if ! command -v docker &> /dev/null; then
               echo "🐳 Installing Docker & Docker Compose..."
+              wait_for_apt
               sudo apt-get update -y
+              wait_for_apt
               sudo apt-get install -y docker.io docker-compose || sudo apt-get install -y docker.io docker-compose-plugin
               sudo systemctl enable docker && sudo systemctl start docker
               sudo usermod -aG docker $USER
@@ -190,7 +202,9 @@ jobs:
             # Ensure Nginx is installed and directories exist
             if ! command -v nginx &> /dev/null; then
               echo "📦 Installing Nginx..."
+              wait_for_apt
               sudo apt-get update -y
+              wait_for_apt
               sudo apt-get install -y nginx
             fi
             sudo mkdir -p /etc/nginx/sites-available /etc/nginx/sites-enabled
