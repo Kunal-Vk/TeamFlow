@@ -130,12 +130,12 @@ jobs:
             EOF
 
 
-            # Safely wait for any background apt/dpkg lock to release (e.g. unattended-upgrades on fresh EC2)
+            # Safely release any stale apt/dpkg lock left by previous runs or unattended-upgrades
             wait_for_apt() {
-              while sudo fuser /var/lib/dpkg/lock-frontend /var/lib/apt/lists/lock /var/lib/dpkg/lock >/dev/null 2>&1; do
-                echo "⏳ Waiting for background Ubuntu automatic updates (unattended-upgrades) to release package lock..."
-                sleep 5
-              done
+              sudo systemctl stop unattended-upgrades.service apt-daily.timer apt-daily-upgrade.timer 2>/dev/null || true
+              sudo killall -9 apt apt-get unattended-upgrade unattended-upgr 2>/dev/null || true
+              sudo rm -f /var/lib/apt/lists/lock /var/cache/apt/archives/lock /var/lib/dpkg/lock* /var/lib/dpkg/lock-frontend 2>/dev/null || true
+              sudo dpkg --configure -a 2>/dev/null || true
             }
 
             # Ensure PostgreSQL is installed and configured natively on Ubuntu
