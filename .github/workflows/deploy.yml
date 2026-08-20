@@ -163,7 +163,8 @@ jobs:
               sudo systemctl restart postgresql
             fi
 
-            # Automatically initialize Database and User if not already present
+            # Automatically initialize Database, User, and Tables with full permissions
+            echo "🗄️ Initializing PostgreSQL database, user, tables, and schema permissions..."
             sudo -u postgres psql -c "
             DO \$\$
             BEGIN
@@ -178,15 +179,122 @@ jobs:
             GRANT ALL PRIVILEGES ON DATABASE teamflow TO \"DADA\";
             " 2>/dev/null || true
 
-            sudo -u postgres psql -d teamflow -c "
-            CREATE EXTENSION IF NOT EXISTS \"pgcrypto\";
-            ALTER SCHEMA public OWNER TO \"DADA\";
-            GRANT ALL ON SCHEMA public TO \"DADA\";
-            GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO \"DADA\";
-            GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO \"DADA\";
-            ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO \"DADA\";
-            ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO \"DADA\";
-            " 2>/dev/null || true
+            sudo -u postgres psql -d teamflow -c '
+            CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+            CREATE TABLE IF NOT EXISTS "users" (
+                "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                "name" VARCHAR(100) NOT NULL,
+                "email" VARCHAR(255) NOT NULL UNIQUE,
+                "password" VARCHAR(255) NOT NULL,
+                "role" VARCHAR(20),
+                "organization_id" UUID,
+                "created_at" TIMESTAMP DEFAULT now() NOT NULL,
+                "updated_at" TIMESTAMP DEFAULT now() NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS "organizations" (
+                "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                "name" VARCHAR(255) NOT NULL,
+                "slug" VARCHAR(100) NOT NULL UNIQUE,
+                "description" TEXT,
+                "owner_id" UUID NOT NULL REFERENCES "users"("id"),
+                "created_at" TIMESTAMP DEFAULT now() NOT NULL,
+                "updated_at" TIMESTAMP DEFAULT now() NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS "refresh_tokens" (
+                "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                "user_id" UUID NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+                "token" VARCHAR(512) NOT NULL UNIQUE,
+                "expires_at" TIMESTAMP NOT NULL,
+                "created_at" TIMESTAMP DEFAULT now() NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS "projects" (
+                "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                "organization_id" UUID NOT NULL REFERENCES "organizations"("id") ON DELETE CASCADE,
+                "name" VARCHAR(255) NOT NULL,
+                "slug" VARCHAR(100) NOT NULL,
+                "description" TEXT,
+                "created_at" TIMESTAMP DEFAULT now() NOT NULL,
+                "updated_at" TIMESTAMP DEFAULT now() NOT NULL
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS "projects_org_slug_unique" ON "projects" ("organization_id", "slug");
+
+            CREATE TABLE IF NOT EXISTS "project_members" (
+                "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                "project_id" UUID NOT NULL REFERENCES "projects"("id") ON DELETE CASCADE,
+                "user_id" UUID NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+                "created_at" TIMESTAMP DEFAULT now() NOT NULL,
+                CONSTRAINT "project_members_project_user_unique" UNIQUE("project_id", "user_id")
+            );
+
+            CREATE TABLE IF NOT EXISTS "teams" (
+                "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                "organization_id" UUID NOT NULL REFERENCES "organizations"("id") ON DELETE CASCADE,
+                "name" VARCHAR(255) NOT NULL,
+                "description" TEXT,
+                "created_at" TIMESTAMP DEFAULT now() NOT NULL,
+                "updated_at" TIMESTAMP DEFAULT now() NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS "team_members" (
+                "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                "team_id" UUID NOT NULL REFERENCES "teams"("id") ON DELETE CASCADE,
+                "user_id" UUID NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+                "created_at" TIMESTAMP DEFAULT now() NOT NULL,
+                CONSTRAINT "team_members_team_user_unique" UNIQUE("team_id", "user_id")
+            );
+
+            CREATE TABLE IF NOT EXISTS "tasks" (
+                "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                "project_id" UUID NOT NULL REFERENCES "projects"("id") ON DELETE CASCADE,
+                "title" VARCHAR(500) NOT NULL,
+                "description" TEXT,
+                "status" VARCHAR(20) DEFAULT '\''TODO'\'' NOT NULL,
+                "priority" VARCHAR(10) DEFAULT '\''MEDIUM'\'' NOT NULL,
+                "assigned_to" UUID REFERENCES "users"("id") ON DELETE SET NULL,
+                "due_date" DATE,
+                "created_at" TIMESTAMP DEFAULT now() NOT NULL,
+                "updated_at" TIMESTAMP DEFAULT now() NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS "task_assignees" (
+                "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                "task_id" UUID NOT NULL REFERENCES "tasks"("id") ON DELETE CASCADE,
+                "user_id" UUID NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+                "created_at" TIMESTAMP DEFAULT now() NOT NULL,
+                CONSTRAINT "task_assignees_task_user_unique" UNIQUE("task_id", "user_id")
+            );
+
+            CREATE TABLE IF NOT EXISTS "comments" (
+                "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                "task_id" UUID NOT NULL REFERENCES "tasks"("id") ON DELETE CASCADE,
+                "user_id" UUID NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+                "content" TEXT NOT NULL,
+                "created_at" TIMESTAMP DEFAULT now() NOT NULL,
+                "updated_at" TIMESTAMP DEFAULT now() NOT NULL
+            );
+
+            ALTER SCHEMA public OWNER TO "DADA";
+            GRANT ALL ON SCHEMA public TO "DADA";
+            GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO "DADA";
+            GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO "DADA";
+            ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO "DADA";
+            ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO "DADA";
+
+            ALTER TABLE IF EXISTS users OWNER TO "DADA";
+            ALTER TABLE IF EXISTS organizations OWNER TO "DADA";
+            ALTER TABLE IF EXISTS refresh_tokens OWNER TO "DADA";
+            ALTER TABLE IF EXISTS projects OWNER TO "DADA";
+            ALTER TABLE IF EXISTS project_members OWNER TO "DADA";
+            ALTER TABLE IF EXISTS teams OWNER TO "DADA";
+            ALTER TABLE IF EXISTS team_members OWNER TO "DADA";
+            ALTER TABLE IF EXISTS tasks OWNER TO "DADA";
+            ALTER TABLE IF EXISTS task_assignees OWNER TO "DADA";
+            ALTER TABLE IF EXISTS comments OWNER TO "DADA";
+            ' 2>/dev/null || true
 
             # Ensure Docker & Docker Compose are installed on EC2
             if ! command -v docker &> /dev/null; then
